@@ -15,7 +15,7 @@ q_gyro = 0.1,
 r = 0.1,
 ```
 
-<div center="align">
+<div style="display: flex; flex-direction: row;">
 <img width="456" alt="image" src="https://github.com/KG-Drone-Project/LSM6DSOX-Kalman-Filter/assets/25258108/5cf48dee-8b5a-482d-b488-c18932f0f97c">
 <img width="494" alt="image" src="https://github.com/KG-Drone-Project/LSM6DSOX-Kalman-Filter/assets/25258108/4abd0d1a-05e9-48a4-9bb3-df7ef5ce02d0">
 <div/>
@@ -26,7 +26,7 @@ q_gyro = 0.01,
 r = 0.03,
 ```
 
-<div center="align">
+<div style="display: flex; flex-direction: row;">
 <img width="439" alt="image" src="https://github.com/KG-Drone-Project/LSM6DSOX-Kalman-Filter/assets/25258108/0934f054-b475-4a26-a8d6-6e48a05af947">
 <img width="496" alt="image" src="https://github.com/KG-Drone-Project/LSM6DSOX-Kalman-Filter/assets/25258108/7093be91-651d-4a53-96f8-32ab725c882a">
 <div/>
