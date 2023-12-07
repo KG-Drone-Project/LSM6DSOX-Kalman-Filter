@@ -1,7 +1,7 @@
 # LSM6DSOX Kalman Filter Sensor Fusion
 > Kalman Filter implementation on IMU 
 
-This repo entails an implementation of the Discrete Kalman Filter on the 6-Axis IMU LSM6DSOX. 
+This repo entails an implementation of the Discrete Kalman Filter on the 6-Axis IMU LSM6DSOX. The goal is to output an angle that can avoid the instabilities or inaccuracies of the gyroscope and accelerometer by itself.  
 
 
 
