@@ -1,8 +1,21 @@
 # LSM6DSOX Kalman Filter Sensor Fusion
+[![Rust](https://img.shields.io/badge/language-Rust-orange.svg)](https://www.rust-lang.org/)
+[![Sensor Fusion](https://img.shields.io/badge/sensor%20fusion-Kalman%20Filter-blue.svg)](https://en.wikipedia.org/wiki/Kalman_filter)
+[![STM32](https://img.shields.io/badge/platform-STM32-blue.svg)](https://www.st.com/en/microcontrollers-microprocessors/stm32-32-bit-arm-cortex-mcus.html)
+
 > Kalman Filter implementation on IMU 
 
 This repo entails an implementation of the Discrete Kalman Filter on the 6-Axis IMU LSM6DSOX. The goal is to output an angle that can avoid the instabilities or inaccuracies of the gyroscope and accelerometer by itself.  
 
+### Introduction
+
+This project aims to develop a system capable of generating precise pitch and roll angles. While these angles can be obtained from the accelerometer or gyroscope in the LSMD6SOX IMU used for this project, both sensors produce noisy data. Specifically:
+- The gyroscope is susceptible to gyro drift, leading to a gradual increase in angle due to the integration of errors.
+- Accelerometers, although accurate at rest, become noisy when exposed to vibrations or motion.
+
+Considering the mentioned flaws, it becomes evident that the gyroscope provides accurate short-term data, whereas the accelerometer offers accurate long-term data. With this understanding, a Discrete Kalman Filter can be employed to fuse the two datasets, yielding a more accurate output.
+
+The Kalman filter is an algorithm used for estimating the state of a system in the presence of noisy measurements. It works by iteratively predicting the next state based on a dynamic model and comparing it with actual measurements. The filter optimally combines predictions and measurements, dynamically adjusting their contributions based on their uncertainties. This allows the Kalman filter to provide a more accurate and stable estimate of the system's true state, making it widely used in applications like sensor fusion for robotics, navigation, and control systems.
 
 
 ### Results
