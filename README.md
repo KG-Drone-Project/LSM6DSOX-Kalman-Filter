@@ -1,7 +1,8 @@
 # LSM6DSOX Kalman Filter Sensor Fusion
 [![Rust](https://img.shields.io/badge/language-Rust-orange.svg)](https://www.rust-lang.org/)
-[![Sensor Fusion](https://img.shields.io/badge/sensor%20fusion-Kalman%20Filter-blue.svg)](https://en.wikipedia.org/wiki/Kalman_filter)
-[![STM32](https://img.shields.io/badge/platform-STM32-blue.svg)](https://www.st.com/en/microcontrollers-microprocessors/stm32-32-bit-arm-cortex-mcus.html)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://github.com/KG-Drone-Project/LSM6DSOX-Kalman-Filter/blob/main/LICENSE)
+[![Sensor Fusion](https://img.shields.io/badge/sensor%20fusion-Kalman%20Filter-green.svg)](https://en.wikipedia.org/wiki/Kalman_filter)
+[![Embedded Systems](https://img.shields.io/badge/platform-STM32-darkred.svg)](https://www.st.com/en/microcontrollers-microprocessors/stm32-32-bit-arm-cortex-mcus.html)
 
 > Kalman Filter implementation on IMU 
 
