@@ -6,25 +6,18 @@ name = "lsm6dsox_driver"
 version = "0.1.0"
 
 [dependencies]
-cortex-m = "0.7.0"
-cortex-m-rt = "0.7.3"
-embedded-hal = "0.2.7"
-libm = "0.2.8"
-nb = "1.1.0"
+cortex-m = { version = "0.7.6", features = ["critical-section-single-core"] }
+cortex-m-rt = "0.7.1"
 panic-halt = "0.2.0"
+rtic = {version = "2.0.1", features = [ "thumbv7-backend" ] }
+rtic-monotonics = {version = "1.0.0", features = [ "cortex-m-systick" ] }
+rtic-sync = "1.0.2"
+
+libm = "0.2.8"
 rtt-target = "0.4.0"
 lsm6dsox_driver = {git = "https://github.com/KavinTheG/LSM6DSOX-Embedded-Rust-Driver.git"}
+stm32f4xx-hal = {version = "0.19.0", features = [ "rt", "stm32f411" ] }
 
-[dependencies.stm32f4xx-hal]
-version = "0.17.1"
-features = ["stm32f411", "rt"] # replace the model of your microcontroller here
-                         # and add other required features
-
-# Uncomment for the panic example.
-# panic-itm = "0.4.1"
-
-# Uncomment for the allocator example.
-# alloc-cortex-m = "0.4.0"
 
 
 # this lets you use `cargo fix`!
