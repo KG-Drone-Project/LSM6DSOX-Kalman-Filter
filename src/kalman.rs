@@ -70,7 +70,7 @@ impl KalmanFilter {
         return self.x_post[0]; 
     }*/
 
-    pub fn get_angle(&mut self, new_rate: f32, new_angle:f32, dt:f32) -> f32 {
+    pub fn process_posterior_state(&mut self, new_rate: f32, new_angle:f32, dt:f32) {
 
         // theta + dt (new gyro - gyro bias)
         self.x_prior[0] += dt * (new_rate - self.x_post[1]);
@@ -101,8 +101,10 @@ impl KalmanFilter {
         self.p[2] -= k[1] * p00_temp; 
         self.p[3] -= k[1] * p01_temp;
 
-        return self.x_post[0]; 
+    }
 
+    pub fn get_angle(&mut self) -> f32 {
+        return self.x_post[0];
     }
 }
 

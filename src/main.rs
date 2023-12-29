@@ -27,15 +27,16 @@ mod app {
     
     #[shared]
     struct Shared {
-        timer: CounterMs<TIM2>,
+        x_kalman: KalmanFilter,
+        y_kalman: KalmanFilter,
     }
 
     #[local]
     struct Local {
         imu: Lsm6dsox<I2c1>,
         i2c: I2c1,
-        x_kalman: KalmanFilter,
-        y_kalman: KalmanFilter,
+        x_kal: f32,
+        y_kal: f32,
     }
 
     #[init]
@@ -69,18 +70,38 @@ mod app {
         imu.configure_accel(&mut i2c).unwrap();
         imu.configure_gyro(&mut i2c).unwrap();
 
-        let mut timer = dp.TIM2.counter_ms(&clocks);
-
         let mut x_kalman = KalmanFilter::new();
         let mut y_kalman = KalmanFilter::new();
 
-        filter_imu_data::spawn().ok();
+        let mut x_kal: f32 = 0.0;
+        let mut y_kal: f32 = 0.0;
 
-        (Shared {timer}, Local {imu, i2c, x_kalman, y_kalman} )
+        filter_imu_data::spawn().unwrap();
+
+        (Shared {x_kalman, y_kalman}, Local {imu, i2c, x_kal, y_kal} )
     }
 
-    #[task(local = [imu, i2c, x_kalman, y_kalman])]
-    async fn filter_imu_data(ctx: filter_imu_data::Context) {
+    #[idle(shared = [x_kalman, y_kalman], local = [x_kal, y_kal])]
+    fn idle(mut ctx: idle::Context) -> ! {
+
+        let mut x_kal = ctx.local.x_kal;
+        let mut y_kal = ctx.local.y_kal;
+
+        loop {
+
+            ctx.shared.x_kalman.lock(|f| {
+                *x_kal = f.get_angle();
+            });
+            ctx.shared.y_kalman.lock(|f| {
+                *y_kal = f.get_angle();
+            });
+
+            rprintln!("Kalman Filter x: {:?}, y: {:?}", *x_kal, *y_kal);
+        }
+    }
+
+    #[task(shared = [x_kalman, y_kalman] ,local = [imu, i2c], priority = 1)]
+    async fn filter_imu_data(mut ctx: filter_imu_data::Context) {
 
         let delta_sec = 0.005;
 
@@ -94,12 +115,7 @@ mod app {
         let mut x_accel: f32 = 0.0;
         let mut y_accel: f32 = 0.0;
     
-        let mut x_kal: f32 = 0.0;
-        let mut y_kal: f32 = 0.0;
-
         let imu = ctx.local.imu;
-        let x_kalman = ctx.local.x_kalman;
-        let y_kalman = ctx.local.y_kalman;
 
         accel_data = imu.read_accel(ctx.local.i2c).unwrap();
         gyro_data = imu.read_gyro(ctx.local.i2c).unwrap();
@@ -111,8 +127,13 @@ mod app {
         y_accel = atanf(accel_data[0] / sqrtf(accel_data[1] * accel_data[1] + accel_data[2] * accel_data[2]) ) * 180.0 / PI;
         x_accel = atanf(accel_data[1] / sqrtf(accel_data[0] * accel_data[0] + accel_data[2] * accel_data[2]) ) * 180.0 / PI;
         
-        x_kal = x_kalman.get_angle(gyro_data[0], x_accel, delta_sec);
-        y_kal = y_kalman.get_angle(gyro_data[1], y_accel, delta_sec);
+        ctx.shared.x_kalman.lock(|f| {
+            f.process_posterior_state(x_gyro, x_accel, delta_sec);
+        });
+
+        ctx.shared.y_kalman.lock(|f| {
+            f.process_posterior_state(y_gyro, y_accel, delta_sec);
+        });
 
         Systick::delay(5.millis()).await;
     }
