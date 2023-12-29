@@ -18,6 +18,8 @@ Considering the mentioned flaws, it becomes evident that the gyroscope provides 
 
 The Kalman filter is an algorithm used for estimating the state of a system in the presence of noisy measurements. It works by iteratively predicting the next state based on a dynamic model and comparing it with actual measurements. The filter optimally combines predictions and measurements, dynamically adjusting their contributions based on their uncertainties. This allows the Kalman filter to provide a more accurate and stable estimate of the system's true state, making it widely used in applications like sensor fusion for robotics, navigation, and control systems.
 
+### Structure
+
 
 ### Results
 
