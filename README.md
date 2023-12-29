@@ -21,7 +21,7 @@ The Kalman filter is an algorithm used for estimating the state of a system in t
 
 ### Components
 
-- RTIC 
+- [RTIC](https://github.com/rtic-rs/rtic) 
   - rust framework for concurrency
 - Timer 2
   - generates 15ms interrupts to update Kalman Filter with new IMU data
