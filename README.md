@@ -1,12 +1,13 @@
 # LSM6DSOX Kalman Filter Sensor Fusion
 [![Rust](https://img.shields.io/badge/language-Rust-orange.svg)](https://www.rust-lang.org/)
+[![Framework: RTIC](https://img.shields.io/badge/Framework-RTIC-lightgrey?style=flat-square)](https://github.com/rtic-rs/rtic)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://github.com/KG-Drone-Project/LSM6DSOX-Kalman-Filter/blob/main/LICENSE)
 [![Sensor Fusion](https://img.shields.io/badge/sensor%20fusion-Kalman%20Filter-green.svg)](https://en.wikipedia.org/wiki/Kalman_filter)
 [![Embedded Systems](https://img.shields.io/badge/platform-STM32-darkred.svg)](https://www.st.com/en/microcontrollers-microprocessors/stm32-32-bit-arm-cortex-mcus.html)
 
 > Kalman Filter implementation on IMU 
 
-This repo entails an implementation of the Discrete Kalman Filter on the 6-Axis IMU LSM6DSOX. The goal is to output an angle that can avoid the instabilities or inaccuracies of the gyroscope and accelerometer by itself.  
+This repo entails an implementation of the Discrete Kalman Filter on the 6-Axis IMU LSM6DSOX. The goal is to output an angle that can avoid the instabilities or inaccuracies of the gyroscope and accelerometer by itself. 
 
 ### Introduction
 
@@ -18,7 +19,15 @@ Considering the mentioned flaws, it becomes evident that the gyroscope provides 
 
 The Kalman filter is an algorithm used for estimating the state of a system in the presence of noisy measurements. It works by iteratively predicting the next state based on a dynamic model and comparing it with actual measurements. The filter optimally combines predictions and measurements, dynamically adjusting their contributions based on their uncertainties. This allows the Kalman filter to provide a more accurate and stable estimate of the system's true state, making it widely used in applications like sensor fusion for robotics, navigation, and control systems.
 
-### Structure
+### Components
+
+- RTIC 
+  - rust framework for concurrency
+- Timer 2
+  - generates 15ms interrupts to update Kalman Filter with new IMU data
+- LSM6DSOX driver
+  - Currently only i2c capabilities provided
+  - https://github.com/KavinTheG/LSM6DSOX-Embedded-Rust-Driver/
 
 
 ### Results
