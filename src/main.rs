@@ -7,7 +7,7 @@ mod kalman;
 
 use panic_halt as _;
 use rtic::app;
-use rtic_monotonics::systick::*;
+//use rtic_monotonics::systick::*;
 
 #[app(device = stm32f4xx_hal::pac, dispatchers = [SDIO] )]
 mod app {
