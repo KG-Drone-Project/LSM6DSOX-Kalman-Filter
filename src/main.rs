@@ -95,6 +95,7 @@ fn main() -> ! {
         x_kal = x_kalman.get_angle(gyro_data[0], x_accel, delta_sec);
         y_kal = y_kalman.get_angle(gyro_data[1], y_accel, delta_sec);
 
+        rprintln!("dt {:?}: ", delta_sec);
         rprintln!("Gyroscope angles; x: {:?}, y: {:?}, z: {:?} ", x_gyro, y_gyro, z_gyro);
         rprintln!("Accelerom angles: x: {:?}, y: {:?} ", x_accel, y_accel);
         rprintln!("Kalman Filter     x: {:?}, y: {:?}", x_kal, y_kal);
