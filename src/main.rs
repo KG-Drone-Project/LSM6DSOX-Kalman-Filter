@@ -100,14 +100,14 @@ mod app {
                 *y_kal = f.get_angle();
             });
 
-            rprintln!("Kalman Filter x: {:?}, y: {:?}", *x_kal, *y_kal);
+            //rprintln!("Kalman Filter x: {:?}, y: {:?}", *x_kal, *y_kal);
         }
     }
 
     #[task(shared = [x_kalman, y_kalman, timer] ,local = [imu, i2c], priority = 1)]
     async fn filter_imu_data(mut ctx: filter_imu_data::Context) {
         //rprintln!("filter");
-        let delta_sec = 0.014;
+        let delta_sec = 0.02;
 
         let mut accel_data:[f32; 3] = [0.0, 0.0, 0.0];
         let mut gyro_data:[f32; 3] = [0.0, 0.0, 0.0];
@@ -125,10 +125,12 @@ mod app {
         
         ctx.shared.x_kalman.lock(|f| {
             f.process_posterior_state(gyro_data[0], x_accel, delta_sec);
+            rprintln!("Kalman Filter x: {:?}", f.get_angle());
         });
 
         ctx.shared.y_kalman.lock(|f| {
             f.process_posterior_state(gyro_data[1], y_accel, delta_sec);
+            rprintln!("Kalman Filter y: {:?}", f.get_angle());
         });
 
         ctx.shared.timer.lock(|f| {

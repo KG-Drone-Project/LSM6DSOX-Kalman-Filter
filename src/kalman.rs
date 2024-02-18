@@ -23,7 +23,7 @@ impl KalmanFilter {
     pub fn new() -> Self {
         KalmanFilter {
             q_ang: 0.01,
-            q_gyro: 1.,
+            q_gyro: 2.5,
             r: 0.03,
 
             x_post: [0., 0.],
