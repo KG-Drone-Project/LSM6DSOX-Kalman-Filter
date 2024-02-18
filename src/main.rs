@@ -103,7 +103,7 @@ mod app {
     #[task(shared = [x_kalman, y_kalman] ,local = [imu, i2c], priority = 1)]
     async fn filter_imu_data(mut ctx: filter_imu_data::Context) {
 
-        let delta_sec = 0.005;
+        let delta_sec = 0.015;
 
         let mut accel_data:[f32; 3] = [0.0, 0.0, 0.0];
         let mut gyro_data:[f32; 3] = [0.0, 0.0, 0.0];
@@ -135,6 +135,6 @@ mod app {
             f.process_posterior_state(y_gyro, y_accel, delta_sec);
         });
 
-        Systick::delay(5.millis()).await;
+        Systick::delay(15.millis()).await;
     }
 }
