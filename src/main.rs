@@ -107,7 +107,7 @@ mod app {
     #[task(shared = [x_kalman, y_kalman, timer] ,local = [imu, i2c], priority = 1)]
     async fn filter_imu_data(mut ctx: filter_imu_data::Context) {
         //rprintln!("filter");
-        let delta_sec = 0.012;
+        let delta_sec = 0.014;
 
         let mut accel_data:[f32; 3] = [0.0, 0.0, 0.0];
         let mut gyro_data:[f32; 3] = [0.0, 0.0, 0.0];
