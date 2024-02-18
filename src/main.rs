@@ -108,9 +108,9 @@ mod app {
         let mut accel_data:[f32; 3] = [0.0, 0.0, 0.0];
         let mut gyro_data:[f32; 3] = [0.0, 0.0, 0.0];
 
-        let mut x_gyro: f32 = 0.0;
-        let mut y_gyro: f32 = 0.0;
-        let mut z_gyro: f32 = 0.0;
+        //let mut x_gyro: f32 = 0.0;
+        //let mut y_gyro: f32 = 0.0;
+        //let mut z_gyro: f32 = 0.0;
     
         let mut x_accel: f32 = 0.0;
         let mut y_accel: f32 = 0.0;
@@ -120,19 +120,15 @@ mod app {
         accel_data = imu.read_accel(ctx.local.i2c).unwrap();
         gyro_data = imu.read_gyro(ctx.local.i2c).unwrap();
 
-        x_gyro += delta_sec * gyro_data[0];
-        y_gyro += delta_sec * gyro_data[1];
-        z_gyro += delta_sec * gyro_data[2];
-
         y_accel = atanf(accel_data[0] / sqrtf(accel_data[1] * accel_data[1] + accel_data[2] * accel_data[2]) ) * 180.0 / PI;
         x_accel = atanf(accel_data[1] / sqrtf(accel_data[0] * accel_data[0] + accel_data[2] * accel_data[2]) ) * 180.0 / PI;
         
         ctx.shared.x_kalman.lock(|f| {
-            f.process_posterior_state(x_gyro, x_accel, delta_sec);
+            f.process_posterior_state(gyro_data[0], x_accel, delta_sec);
         });
 
         ctx.shared.y_kalman.lock(|f| {
-            f.process_posterior_state(y_gyro, y_accel, delta_sec);
+            f.process_posterior_state(gyro_data[1], y_accel, delta_sec);
         });
 
         Systick::delay(15.millis()).await;
