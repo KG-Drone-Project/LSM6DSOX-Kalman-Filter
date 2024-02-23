@@ -14,18 +14,18 @@ mod app {
 
     use core::f32::consts::PI;
     use stm32f4xx_hal::{
-        pac::TIM2,
-        prelude::*, 
         i2c::{I2c1, Mode},
+        pac::TIM2,
+        prelude::*,
         timer::{self, Event},
-    }; 
+    };
 
-    use rtt_target::{rprintln, rtt_init_print};
     use libm::{atanf, sqrtf};
+    use rtt_target::{rprintln, rtt_init_print};
 
-    use lsm6dsox_driver::Lsm6dsox;
     use crate::kalman::KalmanFilter;
-    
+    use lsm6dsox_driver::Lsm6dsox;
+
     #[shared]
     struct Shared {
         x_kalman: KalmanFilter,
@@ -49,18 +49,20 @@ mod app {
 
         let rcc = dp.RCC.constrain();
         let clocks = rcc.cfgr.hclk(8.MHz()).freeze();
-    
+
         let gpiob = dp.GPIOB.split();
-    
+
         let scl = gpiob.pb6.into_open_drain_output();
         let sda = gpiob.pb7.into_open_drain_output();
-    
+
         let mut i2c = dp.I2C1.i2c(
             (scl, sda),
-            Mode::Standard { frequency: 200.kHz() },
+            Mode::Standard {
+                frequency: 200.kHz(),
+            },
             &clocks,
         );
-        
+
         let imu = Lsm6dsox::new(&mut i2c).unwrap();
 
         let mut timer = dp.TIM2.counter_ms(&clocks);
@@ -80,19 +82,29 @@ mod app {
         timer.start(2000.millis()).unwrap();
         timer.listen(Event::Update);
 
-        (Shared {x_kalman, y_kalman, timer}, Local {imu, i2c, x_kal, y_kal} )
+        (
+            Shared {
+                x_kalman,
+                y_kalman,
+                timer,
+            },
+            Local {
+                imu,
+                i2c,
+                x_kal,
+                y_kal,
+            },
+        )
     }
 
     #[idle(shared = [x_kalman, y_kalman], local = [x_kal, y_kal])]
     fn idle(mut ctx: idle::Context) -> ! {
-
         let mut x_kal = ctx.local.x_kal;
         let mut y_kal = ctx.local.y_kal;
 
         rprintln!("idle");
 
         loop {
-
             ctx.shared.x_kalman.lock(|f| {
                 *x_kal = f.get_angle();
             });
@@ -107,22 +119,26 @@ mod app {
     #[task(shared = [x_kalman, y_kalman, timer] ,local = [imu, i2c], priority = 1)]
     async fn filter_imu_data(mut ctx: filter_imu_data::Context) {
         //rprintln!("filter");
-        let delta_sec = 0.02;
 
-        let mut accel_data:[f32; 3] = [0.0, 0.0, 0.0];
-        let mut gyro_data:[f32; 3] = [0.0, 0.0, 0.0];
-    
+        ctx.shared.timer.lock(|f| {
+            f.start(12.millis()).unwrap();
+        });
+        let delta_sec = 0.012;
+
+        let mut accel_data: [f32; 3] = [0.0, 0.0, 0.0];
+        let mut gyro_data: [f32; 3] = [0.0, 0.0, 0.0];
+
         let mut x_accel: f32 = 0.0;
         let mut y_accel: f32 = 0.0;
-    
+
         let imu = ctx.local.imu;
 
         accel_data = imu.read_accel(ctx.local.i2c).unwrap();
         gyro_data = imu.read_gyro(ctx.local.i2c).unwrap();
 
-        y_accel = atanf(accel_data[0] / sqrtf(accel_data[1] * accel_data[1] + accel_data[2] * accel_data[2]) ) * 180.0 / PI;
-        x_accel = atanf(accel_data[1] / sqrtf(accel_data[0] * accel_data[0] + accel_data[2] * accel_data[2]) ) * 180.0 / PI;
-        
+        y_accel = atanf(accel_data[0] / sqrtf(accel_data[1] * accel_data[1] + accel_data[2] * accel_data[2])) * 180.0 / PI;
+        x_accel = atanf(accel_data[1] / sqrtf(accel_data[0] * accel_data[0] + accel_data[2] * accel_data[2])) * 180.0/ PI;
+
         ctx.shared.x_kalman.lock(|f| {
             f.process_posterior_state(gyro_data[0], x_accel, delta_sec);
             rprintln!("Kalman Filter x: {:?}", f.get_angle());
@@ -132,20 +148,12 @@ mod app {
             f.process_posterior_state(gyro_data[1], y_accel, delta_sec);
             rprintln!("Kalman Filter y: {:?}", f.get_angle());
         });
-
-        ctx.shared.timer.lock(|f| {
-            f.start(12.millis()).unwrap();
-        });
     }
 
     #[task(binds = TIM2, shared=[timer])]
     fn timer_expired(mut ctx: timer_expired::Context) {
-
         ctx.shared.timer.lock(|f| {
             f.clear_all_flags();
         });
-
-        filter_imu_data::spawn().unwrap();
     }
-
 }
