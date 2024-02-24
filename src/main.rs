@@ -155,5 +155,7 @@ mod app {
         ctx.shared.timer.lock(|f| {
             f.clear_all_flags();
         });
+
+        filter_imu_data::spawn();
     }
 }

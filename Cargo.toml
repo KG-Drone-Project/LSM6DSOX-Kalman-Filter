@@ -16,9 +16,10 @@ rtic-sync = "1.0.2"
 libm = "0.2.8"
 rtt-target = "0.4.0"
 lsm6dsox_driver = {git = "https://github.com/KavinTheG/LSM6DSOX-Embedded-Rust-Driver.git"}
-stm32f4xx-hal = {version = "0.19.0", features = [ "rt", "stm32f411" ] }
 heapless = "0.8.0"
-
+[dependencies.stm32f4xx-hal]
+version = "0.20.0"
+features = ["stm32f411"]
 
 
 # this lets you use `cargo fix`!
