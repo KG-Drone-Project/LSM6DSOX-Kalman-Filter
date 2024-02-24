@@ -9,15 +9,11 @@ use panic_halt as _;
 use rtic::app;
 //use rtic_monotonics::systick::*;
 
-use heapless::{pool, box_pool};
-
-// Declare a pool of 3 f32 memory blocks
-box_pool!(P: [u8; 3]);
 #[app(device = stm32f4xx_hal::pac, dispatchers = [SDIO] )]
 mod app {
-
     use core::f32::consts::PI;
-    use kalman::KalmanFilter;
+    use heapless::spsc::{Consumer, Producer, Queue};
+
     use stm32f4xx_hal::{
         i2c::{I2c1, Mode},
         pac::TIM2,
@@ -25,14 +21,11 @@ mod app {
         timer::{self, Event},
     };
 
-    use super::P;
-
     use libm::{atanf, sqrtf};
     use rtt_target::{rprintln, rtt_init_print};
 
     use crate::kalman::KalmanFilter;
     use lsm6dsox_driver::Lsm6dsox;
-
 
     #[shared]
     struct Shared {
@@ -45,13 +38,17 @@ mod app {
         i2c: I2c1,
         x_kalman: KalmanFilter,
         y_kalman: KalmanFilter,
+
+        p: Producer<'static, f32, 5>,
+        c: Consumer<'static, f32, 5>
     }
 
-    #[init(local = [memory: [f32; 3] = [0.; 3]])]
+    #[init(local = [q: Queue<f32, 5> = Queue::new()])]
     fn init(ctx: init::Context) -> (Shared, Local) {
         rtt_init_print!();
         rprintln!("init");
 
+        let (p, c) = ctx.local.q.split();
 
         let dp = ctx.device;
 
@@ -95,12 +92,15 @@ mod app {
                 imu,
                 i2c,
                 x_kalman,
-                y_kalman
+                y_kalman,
+
+                p,
+                c,
             },
         )
     }
 
-    #[idle(local = [])]
+    #[idle(local = [c])]
     fn idle(mut ctx: idle::Context) -> ! {
 
 
@@ -109,10 +109,14 @@ mod app {
         loop {
 
             //rprintln!("Kalman Filter x: {:?}, y: {:?}", *x_kal, *y_kal);
+            if let Some(data) = ctx.local.c.dequeue() {
+                rprintln!("Data: {}", data);
+            }
+
         }
     }
 
-    #[task(shared = [timer] ,local = [imu, i2c, x_kalman, y_kalman], priority = 1)]
+    #[task(shared = [timer] ,local = [imu, i2c, x_kalman, y_kalman, p], priority = 1)]
     async fn filter_imu_data(mut ctx: filter_imu_data::Context) {
         //rprintln!("filter");
 
@@ -138,6 +142,17 @@ mod app {
         ctx.local.x_kalman.process_posterior_state(gyro_data[0], x_accel, delta_sec);
         ctx.local.y_kalman.process_posterior_state(gyro_data[1], y_accel, delta_sec);
 
+        match ctx.local.p.enqueue(ctx.local.x_kalman.get_angle()) {
+            Ok(()) => {
+                rprintln!("Data sent");
+            }
+
+            Err(err) => {
+                // Other errors occurred, handle them appropriately
+                // Example: println!("Error occurred while enqueueing data: {:?}", err);
+                rprintln!("Data failed to send: {:?}", err);
+            }
+        }
     }
 
     #[task(binds = TIM2, shared=[timer])]
