@@ -39,11 +39,11 @@ mod app {
         x_kalman: KalmanFilter,
         y_kalman: KalmanFilter,
 
-        p: Producer<'static, f32, 5>,
-        c: Consumer<'static, f32, 5>
+        p: Producer<'static, [f32; 2], 5>,
+        c: Consumer<'static, [f32; 2], 5>
     }
 
-    #[init(local = [q: Queue<f32, 5> = Queue::new()])]
+    #[init(local = [q: Queue<[f32; 2], 5> = Queue::new()])]
     fn init(ctx: init::Context) -> (Shared, Local) {
         rtt_init_print!();
         rprintln!("init");
@@ -110,7 +110,7 @@ mod app {
 
             //rprintln!("Kalman Filter x: {:?}, y: {:?}", *x_kal, *y_kal);
             if let Some(data) = ctx.local.c.dequeue() {
-                rprintln!("Data: {}", data);
+                rprintln!("Data: {:?}", data);
             }
 
         }
@@ -142,17 +142,18 @@ mod app {
         ctx.local.x_kalman.process_posterior_state(gyro_data[0], x_accel, delta_sec);
         ctx.local.y_kalman.process_posterior_state(gyro_data[1], y_accel, delta_sec);
 
-        match ctx.local.p.enqueue(ctx.local.x_kalman.get_angle()) {
+        match ctx.local.p.enqueue([ctx.local.x_kalman.get_angle(), ctx.local.y_kalman.get_angle()]) {
             Ok(()) => {
-                rprintln!("Data sent");
+                //rprintln!("Data sent");
             }
 
             Err(err) => {
                 // Other errors occurred, handle them appropriately
                 // Example: println!("Error occurred while enqueueing data: {:?}", err);
-                rprintln!("Data failed to send: {:?}", err);
+                rprintln!("IMU Data failed to send: {:?}", err);
             }
         }
+        
     }
 
     #[task(binds = TIM2, shared=[timer])]
@@ -160,5 +161,7 @@ mod app {
         ctx.shared.timer.lock(|f| {
             f.clear_all_flags();
         });
+
+        filter_imu_data::spawn();
     }
 }
