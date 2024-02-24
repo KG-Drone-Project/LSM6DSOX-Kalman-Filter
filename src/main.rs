@@ -9,10 +9,15 @@ use panic_halt as _;
 use rtic::app;
 //use rtic_monotonics::systick::*;
 
+use heapless::{pool, box_pool};
+
+// Declare a pool of 3 f32 memory blocks
+box_pool!(P: [u8; 3]);
 #[app(device = stm32f4xx_hal::pac, dispatchers = [SDIO] )]
 mod app {
 
     use core::f32::consts::PI;
+    use kalman::KalmanFilter;
     use stm32f4xx_hal::{
         i2c::{I2c1, Mode},
         pac::TIM2,
@@ -20,16 +25,17 @@ mod app {
         timer::{self, Event},
     };
 
+    use super::P;
+
     use libm::{atanf, sqrtf};
     use rtt_target::{rprintln, rtt_init_print};
 
     use crate::kalman::KalmanFilter;
     use lsm6dsox_driver::Lsm6dsox;
 
+
     #[shared]
     struct Shared {
-        x_kalman: KalmanFilter,
-        y_kalman: KalmanFilter,
         timer: timer::CounterMs<TIM2>,
     }
 
@@ -37,14 +43,16 @@ mod app {
     struct Local {
         imu: Lsm6dsox<I2c1>,
         i2c: I2c1,
-        x_kal: f32,
-        y_kal: f32,
+        x_kalman: KalmanFilter,
+        y_kalman: KalmanFilter,
     }
 
-    #[init]
+    #[init(local = [memory: [f32; 3] = [0.; 3]])]
     fn init(ctx: init::Context) -> (Shared, Local) {
         rtt_init_print!();
         rprintln!("init");
+
+
         let dp = ctx.device;
 
         let rcc = dp.RCC.constrain();
@@ -73,50 +81,38 @@ mod app {
         imu.configure_accel(&mut i2c).unwrap();
         imu.configure_gyro(&mut i2c).unwrap();
 
-        let mut x_kalman = KalmanFilter::new();
-        let mut y_kalman = KalmanFilter::new();
-
-        let mut x_kal: f32 = 0.0;
-        let mut y_kal: f32 = 0.0;
+        let x_kalman = KalmanFilter::new();
+        let y_kalman = KalmanFilter::new();
 
         timer.start(2000.millis()).unwrap();
         timer.listen(Event::Update);
 
         (
             Shared {
-                x_kalman,
-                y_kalman,
                 timer,
             },
             Local {
                 imu,
                 i2c,
-                x_kal,
-                y_kal,
+                x_kalman,
+                y_kalman
             },
         )
     }
 
-    #[idle(shared = [x_kalman, y_kalman], local = [x_kal, y_kal])]
+    #[idle(local = [])]
     fn idle(mut ctx: idle::Context) -> ! {
-        let mut x_kal = ctx.local.x_kal;
-        let mut y_kal = ctx.local.y_kal;
+
 
         rprintln!("idle");
 
         loop {
-            ctx.shared.x_kalman.lock(|f| {
-                *x_kal = f.get_angle();
-            });
-            ctx.shared.y_kalman.lock(|f| {
-                *y_kal = f.get_angle();
-            });
 
             //rprintln!("Kalman Filter x: {:?}, y: {:?}", *x_kal, *y_kal);
         }
     }
 
-    #[task(shared = [x_kalman, y_kalman, timer] ,local = [imu, i2c], priority = 1)]
+    #[task(shared = [timer] ,local = [imu, i2c, x_kalman, y_kalman], priority = 1)]
     async fn filter_imu_data(mut ctx: filter_imu_data::Context) {
         //rprintln!("filter");
 
@@ -139,15 +135,9 @@ mod app {
         y_accel = atanf(accel_data[0] / sqrtf(accel_data[1] * accel_data[1] + accel_data[2] * accel_data[2])) * 180.0 / PI;
         x_accel = atanf(accel_data[1] / sqrtf(accel_data[0] * accel_data[0] + accel_data[2] * accel_data[2])) * 180.0/ PI;
 
-        ctx.shared.x_kalman.lock(|f| {
-            f.process_posterior_state(gyro_data[0], x_accel, delta_sec);
-            rprintln!("Kalman Filter x: {:?}", f.get_angle());
-        });
+        ctx.local.x_kalman.process_posterior_state(gyro_data[0], x_accel, delta_sec);
+        ctx.local.y_kalman.process_posterior_state(gyro_data[1], y_accel, delta_sec);
 
-        ctx.shared.y_kalman.lock(|f| {
-            f.process_posterior_state(gyro_data[1], y_accel, delta_sec);
-            rprintln!("Kalman Filter y: {:?}", f.get_angle());
-        });
     }
 
     #[task(binds = TIM2, shared=[timer])]
