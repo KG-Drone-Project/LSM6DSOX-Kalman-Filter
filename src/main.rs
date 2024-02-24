@@ -11,8 +11,9 @@ use rtic::app;
 
 #[app(device = stm32f4xx_hal::pac, dispatchers = [SDIO] )]
 mod app {
-
     use core::f32::consts::PI;
+    use heapless::spsc::{Consumer, Producer, Queue};
+
     use stm32f4xx_hal::{
         i2c::{I2c1, Mode},
         pac::TIM2,
@@ -28,8 +29,6 @@ mod app {
 
     #[shared]
     struct Shared {
-        x_kalman: KalmanFilter,
-        y_kalman: KalmanFilter,
         timer: timer::CounterMs<TIM2>,
     }
 
@@ -37,14 +36,20 @@ mod app {
     struct Local {
         imu: Lsm6dsox<I2c1>,
         i2c: I2c1,
-        x_kal: f32,
-        y_kal: f32,
+        x_kalman: KalmanFilter,
+        y_kalman: KalmanFilter,
+
+        p: Producer<'static, [f32; 2], 5>,
+        c: Consumer<'static, [f32; 2], 5>
     }
 
-    #[init]
+    #[init(local = [q: Queue<[f32; 2], 5> = Queue::new()])]
     fn init(ctx: init::Context) -> (Shared, Local) {
         rtt_init_print!();
         rprintln!("init");
+
+        let (p, c) = ctx.local.q.split();
+
         let dp = ctx.device;
 
         let rcc = dp.RCC.constrain();
@@ -73,50 +78,45 @@ mod app {
         imu.configure_accel(&mut i2c).unwrap();
         imu.configure_gyro(&mut i2c).unwrap();
 
-        let mut x_kalman = KalmanFilter::new();
-        let mut y_kalman = KalmanFilter::new();
-
-        let mut x_kal: f32 = 0.0;
-        let mut y_kal: f32 = 0.0;
+        let x_kalman = KalmanFilter::new();
+        let y_kalman = KalmanFilter::new();
 
         timer.start(2000.millis()).unwrap();
         timer.listen(Event::Update);
 
         (
             Shared {
-                x_kalman,
-                y_kalman,
                 timer,
             },
             Local {
                 imu,
                 i2c,
-                x_kal,
-                y_kal,
+                x_kalman,
+                y_kalman,
+
+                p,
+                c,
             },
         )
     }
 
-    #[idle(shared = [x_kalman, y_kalman], local = [x_kal, y_kal])]
+    #[idle(local = [c])]
     fn idle(mut ctx: idle::Context) -> ! {
-        let mut x_kal = ctx.local.x_kal;
-        let mut y_kal = ctx.local.y_kal;
+
 
         rprintln!("idle");
 
         loop {
-            ctx.shared.x_kalman.lock(|f| {
-                *x_kal = f.get_angle();
-            });
-            ctx.shared.y_kalman.lock(|f| {
-                *y_kal = f.get_angle();
-            });
 
             //rprintln!("Kalman Filter x: {:?}, y: {:?}", *x_kal, *y_kal);
+            if let Some(data) = ctx.local.c.dequeue() {
+                rprintln!("Data: {:?}", data);
+            }
+
         }
     }
 
-    #[task(shared = [x_kalman, y_kalman, timer] ,local = [imu, i2c], priority = 1)]
+    #[task(shared = [timer] ,local = [imu, i2c, x_kalman, y_kalman, p], priority = 1)]
     async fn filter_imu_data(mut ctx: filter_imu_data::Context) {
         //rprintln!("filter");
 
@@ -139,15 +139,21 @@ mod app {
         y_accel = atanf(accel_data[0] / sqrtf(accel_data[1] * accel_data[1] + accel_data[2] * accel_data[2])) * 180.0 / PI;
         x_accel = atanf(accel_data[1] / sqrtf(accel_data[0] * accel_data[0] + accel_data[2] * accel_data[2])) * 180.0/ PI;
 
-        ctx.shared.x_kalman.lock(|f| {
-            f.process_posterior_state(gyro_data[0], x_accel, delta_sec);
-            rprintln!("Kalman Filter x: {:?}", f.get_angle());
-        });
+        ctx.local.x_kalman.process_posterior_state(gyro_data[0], x_accel, delta_sec);
+        ctx.local.y_kalman.process_posterior_state(gyro_data[1], y_accel, delta_sec);
 
-        ctx.shared.y_kalman.lock(|f| {
-            f.process_posterior_state(gyro_data[1], y_accel, delta_sec);
-            rprintln!("Kalman Filter y: {:?}", f.get_angle());
-        });
+        match ctx.local.p.enqueue([ctx.local.x_kalman.get_angle(), ctx.local.y_kalman.get_angle()]) {
+            Ok(()) => {
+                //rprintln!("Data sent");
+            }
+
+            Err(err) => {
+                // Other errors occurred, handle them appropriately
+                // Example: println!("Error occurred while enqueueing data: {:?}", err);
+                rprintln!("IMU Data failed to send: {:?}", err);
+            }
+        }
+        
     }
 
     #[task(binds = TIM2, shared=[timer])]

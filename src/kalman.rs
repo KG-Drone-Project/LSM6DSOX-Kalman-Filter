@@ -1,20 +1,19 @@
-#![no_std]
 
 pub struct KalmanFilter {
 
     // Posterior state estimate
-    pub x_post: [f32; 2],
+    x_post: [f32; 2],
 
     // Prior state estimate
-    pub x_prior: [f32; 2],
+    x_prior: [f32; 2],
 
-    pub p: [f32; 4],
+    p: [f32; 4],
 
-    pub q_ang: f32,
+    q_ang: f32,
 
-    pub q_gyro: f32,
+    q_gyro: f32,
 
-    pub r: f32,
+    r: f32,
 
 }
 
@@ -22,17 +21,17 @@ pub struct KalmanFilter {
 impl KalmanFilter {
     pub fn new() -> Self {
         KalmanFilter {
-            q_ang: 0.01,
-            q_gyro: 2.5,
+            q_ang: 0.001,
+            q_gyro: 0.003,
             r: 0.03,
 
             x_post: [0., 0.],
             x_prior: [0., 0.],
-            
+
             p: [0., 0., 0., 0.],
         }
     }
-    /* 
+    /*
     pub fn predict(&mut self, new_rate: f32, dt:f32) {
 
         // theta + dt (new gyro - gyro bias)
@@ -61,13 +60,13 @@ impl KalmanFilter {
 
         let p00_temp = self.p_prior[0];
         let p01_temp = self.p_prior[1];
-        
-        self.p_post[0] = self.p_prior[0] - k[0] * p00_temp; 
-        self.p_post[1] = self.p_prior[1] - k[0] * p01_temp; 
-        self.p_post[2] = self.p_prior[2] - k[1] * p00_temp; 
+
+        self.p_post[0] = self.p_prior[0] - k[0] * p00_temp;
+        self.p_post[1] = self.p_prior[1] - k[0] * p01_temp;
+        self.p_post[2] = self.p_prior[2] - k[1] * p00_temp;
         self.p_post[3] = self.p_prior[3] - k[1] * p01_temp;
 
-        return self.x_post[0]; 
+        return self.x_post[0];
     }*/
 
     pub fn process_posterior_state(&mut self, new_rate: f32, new_angle:f32, dt:f32) {
@@ -95,10 +94,10 @@ impl KalmanFilter {
 
         let p00_temp = self.p[0];
         let p01_temp = self.p[1];
-        
-        self.p[0] -= k[0] * p00_temp; 
-        self.p[1] -= k[0] * p01_temp; 
-        self.p[2] -= k[1] * p00_temp; 
+
+        self.p[0] -= k[0] * p00_temp;
+        self.p[1] -= k[0] * p01_temp;
+        self.p[2] -= k[1] * p00_temp;
         self.p[3] -= k[1] * p01_temp;
 
     }
@@ -107,4 +106,3 @@ impl KalmanFilter {
         return self.x_post[0];
     }
 }
-
