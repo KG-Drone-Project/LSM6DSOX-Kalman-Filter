@@ -5,9 +5,9 @@
 [![Sensor Fusion](https://img.shields.io/badge/sensor%20fusion-Kalman%20Filter-green.svg)](https://en.wikipedia.org/wiki/Kalman_filter)
 [![Embedded Systems](https://img.shields.io/badge/platform-STM32-darkred.svg)](https://www.st.com/en/microcontrollers-microprocessors/stm32-32-bit-arm-cortex-mcus.html)
 
-> Kalman Filter implementation on IMU 
+> Kalman Filter implementation on IMU
 
-This repo entails an implementation of the Discrete Kalman Filter on the 6-Axis IMU LSM6DSOX. The goal is to output an angle that can avoid the instabilities or inaccuracies of the gyroscope and accelerometer by itself. 
+This repo entails an implementation of the Discrete Kalman Filter on the 6-Axis IMU LSM6DSOX. The goal is to output an angle that can avoid the instabilities or inaccuracies of the gyroscope and accelerometer by itself.
 
 ### Introduction
 
@@ -21,8 +21,8 @@ The Kalman filter is an algorithm used for estimating the state of a system in t
 
 ### Components
 
-- [RTIC](https://github.com/rtic-rs/rtic) 
-  - rust framework for concurrency
+- [RTIC](https://github.com/rtic-rs/rtic)
+  - rust framework for interrupt-driven concurrency
 - Timer 2
   - generates 15ms interrupts to update Kalman Filter with new IMU data
 - LSM6DSOX driver
@@ -30,9 +30,14 @@ The Kalman filter is an algorithm used for estimating the state of a system in t
   - https://github.com/KavinTheG/LSM6DSOX-Embedded-Rust-Driver/
 
 
+#### Queues
+
+When using RTIC mutexes, the Kalman Filter performance suffered. I believe this is due to the fact that the filter is not able to get an accurate value of the delta time, since it has to wait for the mutex. To mitigate this, a queue was used instead.
+
+
 ### Results
 
-The following graphs displays the values of the roll with the given parameters. The first image corresponds to a slow increase in the IMU's roll motion, while the second image corresponds to slight vibrations of the imu. 
+The following graphs displays the values of the roll with the given parameters. The first image corresponds to a slow increase in the IMU's roll motion, while the second image corresponds to slight vibrations of the imu.
 
 ```
 q_ang = 0.001,
@@ -64,6 +69,3 @@ r = 0.03,
 - An Introduction to the Kalman Filter, <br />
   Greg Welch and Gary Bishop 1994, <br />
   https://api.semanticscholar.org/CorpusID:9209711
-
-
-

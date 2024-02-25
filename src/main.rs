@@ -101,7 +101,7 @@ mod app {
     }
 
     #[idle(local = [c])]
-    fn idle(mut ctx: idle::Context) -> ! {
+    fn idle(ctx: idle::Context) -> ! {
 
 
         rprintln!("idle");
@@ -125,11 +125,11 @@ mod app {
         });
         let delta_sec = 0.012;
 
-        let mut accel_data: [f32; 3] = [0.0, 0.0, 0.0];
-        let mut gyro_data: [f32; 3] = [0.0, 0.0, 0.0];
+        let accel_data: [f32; 3];
+        let gyro_data: [f32; 3];
 
-        let mut x_accel: f32 = 0.0;
-        let mut y_accel: f32 = 0.0;
+        let x_accel: f32;
+        let y_accel: f32;
 
         let imu = ctx.local.imu;
 
@@ -153,7 +153,7 @@ mod app {
                 rprintln!("IMU Data failed to send: {:?}", err);
             }
         }
-        
+
     }
 
     #[task(binds = TIM2, shared=[timer])]
@@ -162,6 +162,6 @@ mod app {
             f.clear_all_flags();
         });
 
-        filter_imu_data::spawn();
+        filter_imu_data::spawn().unwrap();
     }
 }
