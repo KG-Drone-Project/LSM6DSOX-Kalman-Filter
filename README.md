@@ -34,6 +34,9 @@ The Kalman filter is an algorithm used for estimating the state of a system in t
 
 When using RTIC mutexes, the Kalman Filter performance suffered. I believe this is due to the fact that the filter is not able to get an accurate value of the delta time, since it has to wait for the mutex. To mitigate this, a queue was used instead.
 
+### NOTE
+
+rustc 1.78.0-nightly (2024-02-08) is used. For some reason, rustc 1.78-nightly (2024-02-23) does not work well with embedded-hal 0.2, as the program halts when trying to read/write from the i2c bus. 
 
 ### Results
 
